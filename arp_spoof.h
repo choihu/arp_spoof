@@ -1,5 +1,38 @@
 #include <stdint.h>
 #include <pcap.h>
+#include <stdio.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+#define REQUEST 1
+#define REPLY 2
+
+typedef struct arp_packet{
+  uint8_t dest_mac[6];  //6
+  uint8_t src_mac[6];   //12
+  uint16_t type;        //14
+
+  uint16_t hw_type;     //16
+  uint16_t protocol_type;//18
+  uint8_t hw_size;      //19
+  uint8_t protocol_size;//20
+  uint16_t opcode;      //22
+  uint8_t src_mac2[6];  //28
+  uint8_t src_ip[4];    //32
+  uint8_t dest_mac2[6]; //38
+  uint8_t dest_ip[4];   //42
+} packet;
+
 
 void usage();
 void print_IP(uint8_t* ip);

