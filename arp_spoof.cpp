@@ -163,7 +163,8 @@ void prevent_arp_recovery(pcap_t* handle, uint8_t* my_ip, uint8_t* src_mac) {
         swap_ranges(ret, ret+6, ret+6);
         swap_ranges(ret+22, ret+28, ret+32);
         swap_ranges(ret+28, ret+32, ret+38);
-        ret[20] = htons(REPLY);
+        ret[20] = 0x00;
+        ret[21] = 0x02;
         pcap_sendpacket(handle, ret, header->caplen);
       }
     }
