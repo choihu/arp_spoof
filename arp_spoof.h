@@ -54,3 +54,4 @@ int get_mac_by_ip(pcap_t* handle, uint8_t* sender_ip, uint8_t* sender_mac);
 void relay_ip_packet(const u_char* packet, uint8_t* my_ip, uint8_t* my_mac, uint8_t* src_mac, uint8_t* dest_mac, pcap_t* handle, int length);
 void prevent_arp_recovery(const u_char* packet, uint8_t* my_ip, uint8_t* src_mac, pcap_t* handle, int length);
 void* arp_spoofing_cycle(void *arg);
+

