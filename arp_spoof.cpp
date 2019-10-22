@@ -1,14 +1,6 @@
 #include "arp_spoof.h"
 
 u_char relay[10000];
-uint8_t sender_mac[10][6];
-uint8_t target_mac[10][6];
-uint8_t attacker_mac[6];
-uint8_t sender_ip[10][4];
-uint8_t target_ip[10][4];
-uint8_t attacker_ip[4];
-pcap_t* handle;
-int cnt;
 
 void usage() {
   printf("syntax: arp_spoof <interface> <sender ip 1> <target ip 1> [<sender ip 2> <target ip 2> ...]\n");

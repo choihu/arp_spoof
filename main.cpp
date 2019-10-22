@@ -1,5 +1,14 @@
 #include "arp_spoof.h"
 
+uint8_t sender_mac[10][6];
+uint8_t target_mac[10][6];
+uint8_t attacker_mac[6];
+uint8_t sender_ip[10][4];
+uint8_t target_ip[10][4];
+uint8_t attacker_ip[4];
+pcap_t* handle;
+int cnt;
+
 int main(int argc, char* argv[]) {
   if(argc <= 3 || argc % 2 == 1 || argc > 22) {
     usage();
