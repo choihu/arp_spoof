@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <vector>
+#include <pthread.h>
 using namespace std;
 
 #define REQUEST 1
@@ -33,6 +34,14 @@ typedef struct arp_packet{
   uint8_t dest_ip[4];   //42
 } packet;
 
+extern uint8_t sender_mac[10][6];
+extern uint8_t target_mac[10][6];
+extern uint8_t attacker_mac[6];
+extern uint8_t sender_ip[10][4];
+extern uint8_t target_ip[10][4];
+extern uint8_t attacker_ip[4];
+extern pcap_t* handle;
+extern int cnt;
 
 void usage();
 void print_IP(uint8_t* ip);
@@ -44,4 +53,4 @@ void send_arp(pcap_t* handle, uint16_t packet_type, uint8_t* src_ip, uint8_t* de
 int get_mac_by_ip(pcap_t* handle, uint8_t* sender_ip, uint8_t* sender_mac);
 void relay_ip_packet(const u_char* packet, uint8_t* my_ip, uint8_t* my_mac, uint8_t* src_mac, uint8_t* dest_mac, pcap_t* handle, int length);
 void prevent_arp_recovery(const u_char* packet, uint8_t* my_ip, uint8_t* src_mac, pcap_t* handle, int length);
-
+void* arp_spoofing_cycle(void *arg);

